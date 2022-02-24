@@ -1,0 +1,7 @@
+domain: com.shalousun
+repo: podset-operator
+resources:
+- group: data.clond
+  kind: PodSet
+  version: v1
+version: "2"
