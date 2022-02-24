@@ -21,7 +21,7 @@ make install
 ```shell
 kubectl api-versions|grep data.clond
 ```
-## 部署zk集群
+## 部署podset-operator集群
 ```shell
-kubectl apply -f config/samples/data.clond_v1_zookeepercluster.yaml
+kubectl apply -f config/samples/data.clond_v1_podset.yaml
 ```

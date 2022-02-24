@@ -18,6 +18,14 @@ package controllers
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,6 +34,8 @@ import (
 
 	dataclondv1 "podset-operator/api/v1"
 )
+
+var log = logf.Log.WithName("controller_podset")
 
 // PodSetReconciler reconciles a PodSet object
 type PodSetReconciler struct {
@@ -37,17 +47,119 @@ type PodSetReconciler struct {
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets/status,verbs=get;update;patch
 
-func (r *PodSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("podset", req.NamespacedName)
+func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger.Info("Reconciling PodSet")
 
-	// your logic here
+	// Fetch the PodSet instance
+	podSet := &dataclondv1.PodSet{}
+	err := r.Get(context.TODO(), request.NamespacedName, podSet)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
+	}
 
-	return ctrl.Result{}, nil
+	// List all pods owned by this PodSet instance
+	lbls := labels.Set{
+		"app":     podSet.Name,
+		"version": "v0.1",
+	}
+	existingPods := &corev1.PodList{}
+	err = r.List(context.TODO(),
+		existingPods,
+		&client.ListOptions{
+			Namespace:     request.Namespace,
+			LabelSelector: labels.SelectorFromSet(lbls),
+		})
+	if err != nil {
+		reqLogger.Error(err, "failed to list existing pods in the podSet")
+		return reconcile.Result{}, err
+	}
+	existingPodNames := []string{}
+	// Count the pods that are pending or running as available
+	for _, pod := range existingPods.Items {
+		if pod.GetObjectMeta().GetDeletionTimestamp() != nil {
+			continue
+		}
+		if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodRunning {
+			existingPodNames = append(existingPodNames, pod.GetObjectMeta().GetName())
+		}
+	}
+
+	reqLogger.Info("Checking podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+	// Update the status if necessary
+	status := dataclondv1.PodSetStatus{
+		Replicas: int32(len(existingPodNames)),
+		PodNames: existingPodNames,
+	}
+	if !reflect.DeepEqual(podSet.Status, status) {
+		podSet.Status = status
+		err := r.Status().Update(context.TODO(), podSet)
+		if err != nil {
+			reqLogger.Error(err, "failed to update the podSet")
+			return reconcile.Result{}, err
+		}
+	}
+	// Scale Down Pods
+	if int32(len(existingPodNames)) > podSet.Spec.Replicas {
+		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
+		reqLogger.Info("Deleting a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+		pod := existingPods.Items[0]
+		err = r.Delete(context.TODO(), &pod)
+		if err != nil {
+			reqLogger.Error(err, "failed to delete a pod")
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Scale Up Pods
+	if int32(len(existingPodNames)) < podSet.Spec.Replicas {
+		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
+		reqLogger.Info("Adding a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+		pod := newPodForCR(podSet)
+		if err := controllerutil.SetControllerReference(podSet, pod, r.Scheme); err != nil {
+			reqLogger.Error(err, "unable to set owner reference on new pod")
+			return reconcile.Result{}, err
+		}
+		err = r.Create(context.TODO(), pod)
+		if err != nil {
+			reqLogger.Error(err, "failed to create a pod")
+			return reconcile.Result{}, err
+		}
+	}
+	return reconcile.Result{Requeue: true}, nil
 }
 
 func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&dataclondv1.PodSet{}).
 		Complete(r)
+}
+func newPodForCR(cr *dataclondv1.PodSet) *corev1.Pod {
+	labels := map[string]string{
+		"app":     cr.Name,
+		"version": "v0.1",
+	}
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: cr.Name + "-pod",
+			Namespace:    cr.Namespace,
+			Labels:       labels,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:    "busybox",
+					Image:   "busybox",
+					Command: []string{"sleep", "3600"},
+				},
+			},
+		},
+	}
 }
