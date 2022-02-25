@@ -25,7 +25,9 @@ import (
 
 // PodSetSpec defines the desired state of PodSet
 type PodSetSpec struct {
-	Replicas int32 `json:"replicas"`
+	Replicas int32    `json:"replicas"`
+	Option   string   `json:"option"`
+	PodLists []string `json:"pod_lists"`
 }
 
 // PodSetStatus defines the observed state of PodSet
