@@ -87,7 +87,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		reqLogger.Error(err, "failed to list existing pods in the podSet")
 		return reconcile.Result{}, err
 	}
-	existingPodNames := []string{}
+	var existingPodNames []string
 
 	// Count the pods that are pending or running as available
 	for _, pod := range existingPods.Items {

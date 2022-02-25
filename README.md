@@ -25,3 +25,15 @@ kubectl api-versions|grep data.clond
 ```shell
 kubectl apply -f config/samples/data.clond_v1_podset.yaml
 ```
+删除pod
+```shell
+kubectl delete -f config/samples/data.clond_v1_podset.yaml
+```
+pod扩容
+```shell
+kubectl apply -f config/samples/scale_up.yaml
+```
+pod缩容
+```shell
+kubectl apply -f config/samples/scale_down.yaml
+```

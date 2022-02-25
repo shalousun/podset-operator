@@ -1,0 +1,7 @@
+apiVersion: data.clond.com.shalousun/v1
+kind: PodSet
+metadata:
+  name: podset-sample
+spec:
+  # Add fields here
+  replicas: 2
