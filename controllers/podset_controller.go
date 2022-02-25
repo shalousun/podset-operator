@@ -116,9 +116,23 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	//		}
 	//	}
 	//}
+	// delete pod
+	if podSet.Spec.Option == "delete" {
+		for _, pod := range existingPods.Items {
+			for _, name := range podSet.Spec.PodLists {
+				if name == pod.Name {
+					err = r.Delete(context.TODO(), &pod)
+					if err != nil {
+						reqLogger.Error(err, "failed to delete a pod %s", name)
+						return reconcile.Result{}, err
+					}
+				}
+			}
+		}
+	}
 
 	// Scale Down Pods
-	if int32(len(existingPodNames)) > podSet.Spec.Replicas {
+	if int32(len(existingPodNames)) > podSet.Spec.Replicas && podSet.Spec.Option == "scale_down" {
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Deleting a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
 		pod := existingPods.Items[0]
@@ -130,7 +144,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Scale Up Pods
-	if int32(len(existingPodNames)) < podSet.Spec.Replicas {
+	if int32(len(existingPodNames)) < podSet.Spec.Replicas && podSet.Spec.Option == "scale_up" {
 		var diff = Difference(expectPods, existingPodNames)
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Adding a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
