@@ -22,10 +22,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,6 +46,7 @@ type PodSetReconciler struct {
 
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1,resources=pods,verbs=get;list;watch;create;update;patch;delete
 
 func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
@@ -65,6 +66,11 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, err
 	}
 
+	var expectPods []string
+	for i := 0; i < int(podSet.Spec.Replicas); i++ {
+		podName := podSet.Name + "-" + strconv.Itoa(i)
+		expectPods = append(expectPods, podName)
+	}
 	// List all pods owned by this PodSet instance
 	lbls := labels.Set{
 		"app":     podSet.Name,
@@ -82,6 +88,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, err
 	}
 	existingPodNames := []string{}
+
 	// Count the pods that are pending or running as available
 	for _, pod := range existingPods.Items {
 		if pod.GetObjectMeta().GetDeletionTimestamp() != nil {
@@ -93,19 +100,23 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	}
 
 	reqLogger.Info("Checking podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
-	// Update the status if necessary
-	status := dataclondv1.PodSetStatus{
-		Replicas: int32(len(existingPodNames)),
-		PodNames: existingPodNames,
-	}
-	if !reflect.DeepEqual(podSet.Status, status) {
-		podSet.Status = status
-		err := r.Status().Update(context.TODO(), podSet)
-		if err != nil {
-			reqLogger.Error(err, "failed to update the podSet")
-			return reconcile.Result{}, err
-		}
-	}
+
+	//// Update the status if necessary
+	//if int32(len(existingPodNames)) > 0 {
+	//	status := dataclondv1.PodSetStatus{
+	//		Replicas: int32(len(existingPodNames)),
+	//		PodNames: existingPodNames,
+	//	}
+	//	if !reflect.DeepEqual(podSet.Status, status) {
+	//		podSet.Status = status
+	//		err := r.Status().Update(context.TODO(), podSet)
+	//		if err != nil {
+	//			reqLogger.Error(err, "failed to update the podSet")
+	//			return reconcile.Result{}, err
+	//		}
+	//	}
+	//}
+
 	// Scale Down Pods
 	if int32(len(existingPodNames)) > podSet.Spec.Replicas {
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
@@ -120,9 +131,10 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 
 	// Scale Up Pods
 	if int32(len(existingPodNames)) < podSet.Spec.Replicas {
+		var diff = Difference(expectPods, existingPodNames)
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Adding a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
-		pod := newPodForCR(podSet)
+		pod := newPodForCR(podSet, diff[0])
 		if err := controllerutil.SetControllerReference(podSet, pod, r.Scheme); err != nil {
 			reqLogger.Error(err, "unable to set owner reference on new pod")
 			return reconcile.Result{}, err
@@ -141,16 +153,16 @@ func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dataclondv1.PodSet{}).
 		Complete(r)
 }
-func newPodForCR(cr *dataclondv1.PodSet) *corev1.Pod {
+func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 	labels := map[string]string{
 		"app":     cr.Name,
 		"version": "v0.1",
 	}
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: cr.Name + "-pod",
-			Namespace:    cr.Namespace,
-			Labels:       labels,
+			Name:      podName,
+			Namespace: cr.Namespace,
+			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
@@ -162,4 +174,18 @@ func newPodForCR(cr *dataclondv1.PodSet) *corev1.Pod {
 			},
 		},
 	}
+}
+
+// Difference of string arrays
+func Difference(a, b []string) (diff []string) {
+	m := make(map[string]bool)
+	for _, item := range b {
+		m[item] = true
+	}
+	for _, item := range a {
+		if _, ok := m[item]; !ok {
+			diff = append(diff, item)
+		}
+	}
+	return
 }
