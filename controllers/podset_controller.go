@@ -65,9 +65,13 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	replicas := podSet.Spec.Replicas
+	if replicas%2 == 0 {
+		replicas = replicas + 1
+	}
 
 	var expectPods []string
-	for i := 0; i < int(podSet.Spec.Replicas); i++ {
+	for i := 0; i < int(replicas); i++ {
 		podName := podSet.Name + "-" + strconv.Itoa(i)
 		expectPods = append(expectPods, podName)
 	}
@@ -132,7 +136,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Scale Down Pods
-	if int32(len(existingPodNames)) > podSet.Spec.Replicas && podSet.Spec.Option == "scale_down" {
+	if int32(len(existingPodNames)) > replicas && podSet.Spec.Option == "scale_down" {
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Deleting a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
 		pod := existingPods.Items[0]
@@ -144,7 +148,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Scale Up Pods
-	if int32(len(existingPodNames)) < podSet.Spec.Replicas && podSet.Spec.Option == "scale_up" {
+	if int32(len(existingPodNames)) < replicas && podSet.Spec.Option == "scale_up" {
 		var diff = Difference(expectPods, existingPodNames)
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Adding a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
