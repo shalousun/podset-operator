@@ -209,9 +209,14 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:    cr.Name,
-					Image:   dataclondv1.Image,
-					Command: []string{"sleep", "3600"},
+					Name:  cr.Name,
+					Image: dataclondv1.Image,
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: cr.Spec.Port,
+							Protocol:      corev1.ProtocolTCP,
+						},
+					},
 				},
 			},
 		},
@@ -226,9 +231,8 @@ func newService(cr *dataclondv1.PodSet) *corev1.Service {
 			Namespace: cr.Namespace,
 		},
 		Spec: corev1.ServiceSpec{
-			ClusterIP: "None",
-			Selector:  labels,
-			Type:      corev1.ServiceTypeClusterIP,
+			Selector: labels,
+			Type:     corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				{
 					Protocol:   corev1.ProtocolTCP,

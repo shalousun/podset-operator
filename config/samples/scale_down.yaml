@@ -6,3 +6,5 @@ spec:
   # Add fields here
   replicas: 2
   option: scale_down
+  port: 80
+  targetPort: 80

@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	Image string = "busybox"
+	Image string = "nginx:alpine"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -31,9 +31,9 @@ const (
 type PodSetSpec struct {
 	Replicas   int32    `json:"replicas"`
 	Option     string   `json:"option"`
-	PodLists   []string `json:"pod_lists"`
+	PodLists   []string `json:"podLists"`
 	Port       int32    `json:"port"`
-	TargetPort int32    `json:"target_port"`
+	TargetPort int32    `json:"targetPort"`
 }
 
 // PodSetStatus defines the observed state of PodSet

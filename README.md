@@ -37,3 +37,7 @@ pod缩容
 ```shell
 kubectl apply -f config/samples/scale_down.yaml
 ```
+## 卸载
+```shell
+kubectl delete -f config/samples/data.clond_v1_podset.yaml
+```
