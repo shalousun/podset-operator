@@ -29,9 +29,11 @@ const (
 
 // PodSetSpec defines the desired state of PodSet
 type PodSetSpec struct {
-	Replicas int32    `json:"replicas"`
-	Option   string   `json:"option"`
-	PodLists []string `json:"pod_lists"`
+	Replicas   int32    `json:"replicas"`
+	Option     string   `json:"option"`
+	PodLists   []string `json:"pod_lists"`
+	Port       int32    `json:"port"`
+	TargetPort int32    `json:"target_port"`
 }
 
 // PodSetStatus defines the observed state of PodSet

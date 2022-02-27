@@ -22,6 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -68,6 +70,26 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	replicas := podSet.Spec.Replicas
 	if replicas%2 == 0 {
 		replicas = replicas + 1
+	}
+
+	// Define a new service object
+	service := newService(podSet)
+
+	// Set PodSet instance as the owner and controller
+	if err := controllerutil.SetControllerReference(podSet, service, r.Scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Check if service already exists
+	serviceFound := &corev1.Service{}
+	err = r.Get(context.TODO(), types.NamespacedName{Name: service.Name, Namespace: service.Namespace}, serviceFound)
+	if err != nil && errors.IsNotFound(err) {
+		reqLogger.Info("Creating a new service", "Service.Namespace", service.Namespace, "Service.Name", service.Name)
+		err = r.Create(context.TODO(), service)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	var expectPods []string
@@ -190,6 +212,28 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 					Name:    cr.Name,
 					Image:   dataclondv1.Image,
 					Command: []string{"sleep", "3600"},
+				},
+			},
+		},
+	}
+}
+
+func newService(cr *dataclondv1.PodSet) *corev1.Service {
+	labels := map[string]string{"app": cr.Name}
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Selector:  labels,
+			Type:      corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Protocol:   corev1.ProtocolTCP,
+					Port:       cr.Spec.Port,
+					TargetPort: intstr.FromInt(int(cr.Spec.TargetPort)),
 				},
 			},
 		},
