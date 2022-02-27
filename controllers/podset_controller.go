@@ -187,8 +187,8 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:    "busybox",
-					Image:   "busybox",
+					Name:    cr.Name,
+					Image:   dataclondv1.Image,
 					Command: []string{"sleep", "3600"},
 				},
 			},
