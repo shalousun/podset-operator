@@ -5,6 +5,6 @@ metadata:
 spec:
   # Add fields here
   replicas: 2
-  option: 'delete'
+  option: delete
   pod_lists:
     - 'podset-sample-1'
