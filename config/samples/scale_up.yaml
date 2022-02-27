@@ -5,3 +5,4 @@ metadata:
 spec:
   # Add fields here
   replicas: 4
+  option: scale_up

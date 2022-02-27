@@ -27,7 +27,7 @@ kubectl apply -f config/samples/data.clond_v1_podset.yaml
 ```
 删除pod
 ```shell
-kubectl delete -f config/samples/data.clond_v1_podset.yaml
+kubectl apply -f config/samples/pod_delete.yaml
 ```
 pod扩容
 ```shell

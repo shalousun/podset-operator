@@ -7,4 +7,4 @@ spec:
   replicas: 2
   option: delete
   pod_lists:
-    - 'podset-sample-1'
+    - 'podset-sample-2'

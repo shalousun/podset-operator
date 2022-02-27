@@ -148,15 +148,17 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		var diff = Difference(expectPods, existingPodNames)
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Adding a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
-		pod := newPodForCR(podSet, diff[0])
-		if err := controllerutil.SetControllerReference(podSet, pod, r.Scheme); err != nil {
-			reqLogger.Error(err, "unable to set owner reference on new pod")
-			return reconcile.Result{}, err
-		}
-		err = r.Create(context.TODO(), pod)
-		if err != nil {
-			reqLogger.Error(err, "failed to create a pod")
-			return reconcile.Result{}, err
+		for _, podName := range diff {
+			pod := newPodForCR(podSet, podName)
+			if err := controllerutil.SetControllerReference(podSet, pod, r.Scheme); err != nil {
+				reqLogger.Error(err, "unable to set owner reference on new pod")
+				return reconcile.Result{}, err
+			}
+			err = r.Create(context.TODO(), pod)
+			if err != nil {
+				reqLogger.Error(err, "failed to create a pod")
+				return reconcile.Result{}, err
+			}
 		}
 	}
 	return reconcile.Result{Requeue: true}, nil
