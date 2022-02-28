@@ -98,7 +98,13 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		expectPods = append(expectPods, podName)
 	}
 	// List all pods owned by this PodSet instance
-	existingPods, err := listPods(r, podSet)
+	existingPods := &corev1.PodList{}
+	err = r.List(context.TODO(),
+		existingPods,
+		&client.ListOptions{
+			Namespace:     request.Namespace,
+			LabelSelector: labels.SelectorFromSet(labelsForPodSet(podSet)),
+		})
 	if err != nil {
 		reqLogger.Error(err, "failed to list existing pods in the podSet")
 		return reconcile.Result{}, err
@@ -106,13 +112,16 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	var existingPodNames []string
 
 	// Count the pods that are pending or running as available
-	for _, pod := range existingPods {
+	for _, pod := range existingPods.Items {
+		if pod.GetObjectMeta().GetDeletionTimestamp() != nil {
+			continue
+		}
 		if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodRunning {
 			existingPodNames = append(existingPodNames, pod.GetObjectMeta().GetName())
 		}
 	}
 
-	reqLogger.Info("Checking podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+	//reqLogger.Info("Checking podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
 
 	//// Update the status if necessary
 	//if int32(len(existingPodNames)) > 0 {
@@ -131,7 +140,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	//}
 	// delete pod
 	if podSet.Spec.Option == "delete" {
-		for _, pod := range existingPods {
+		for _, pod := range existingPods.Items {
 			for _, name := range podSet.Spec.PodLists {
 				if name == pod.Name {
 					err = r.Delete(context.TODO(), &pod)
@@ -144,11 +153,12 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
+	reqLogger.Info("Podset option", "expected replicas", replicas, "Pod.Names", existingPodNames, "Pod.option", podSet.Spec.Option)
 	// Scale Down Pods
 	if int32(len(existingPodNames)) > replicas && podSet.Spec.Option == "scale_down" {
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Deleting a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
-		pod := existingPods[0]
+		pod := existingPods.Items[0]
 		err = r.Delete(context.TODO(), &pod)
 		if err != nil {
 			reqLogger.Error(err, "failed to delete a pod")
@@ -182,50 +192,8 @@ func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dataclondv1.PodSet{}).
 		Complete(r)
 }
-
-// defaultLabels returns the default set of labels for the PodSet.
-func defaultLabels(cr *dataclondv1.PodSet) map[string]string {
-	return map[string]string{
-		"app":     cr.Name,
-		"version": "v1.0",
-	}
-}
-
-// labelsForPodSet returns the combined, set of labels for the PodSet.
-func labelsForPodSet(cr *dataclondv1.PodSet) map[string]string {
-	labels := defaultLabels(cr)
-	for key, val := range cr.ObjectMeta.Labels {
-		labels[key] = val
-	}
-	return labels
-}
-
-// listPods will return a slice containing the Pods owned by the Operator that
-// do not have a DeletionTimestamp set.
-func listPods(r *PodSetReconciler, cr *dataclondv1.PodSet) ([]corev1.Pod, error) {
-	// List the pods for the given PodSet.
-	podList := &corev1.PodList{}
-	labelSelector := labels.SelectorFromSet(labelsForPodSet(cr))
-	listOps := &client.ListOptions{Namespace: cr.Namespace, LabelSelector: labelSelector}
-	err := r.List(context.TODO(), podList, listOps)
-	if err != nil {
-		return nil, err
-	}
-
-	// Filter out Pods with a DeletionTimestamp.
-	pods := make([]corev1.Pod, 0)
-	for _, pod := range podList.Items {
-		if pod.DeletionTimestamp == nil {
-			pods = append(pods, pod)
-		}
-	}
-	return pods, nil
-}
 func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
-	labels := map[string]string{
-		"app":     cr.Name,
-		"version": "v0.1",
-	}
+	labels := labelsForPodSet(cr)
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -268,6 +236,23 @@ func newService(cr *dataclondv1.PodSet) *corev1.Service {
 			},
 		},
 	}
+}
+
+// defaultLabels returns the default set of labels for the PodSet.
+func defaultLabels(cr *dataclondv1.PodSet) map[string]string {
+	return map[string]string{
+		"app":     cr.Name,
+		"version": "v0.1",
+	}
+}
+
+// labelsForPodSet returns the combined, set of labels for the PodSet.
+func labelsForPodSet(cr *dataclondv1.PodSet) map[string]string {
+	labels := defaultLabels(cr)
+	for key, val := range cr.ObjectMeta.Labels {
+		labels[key] = val
+	}
+	return labels
 }
 
 // Difference of string arrays
