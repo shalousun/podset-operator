@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -115,23 +116,8 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		}
 	}
 
-	reqLogger.Info("Checking podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+	reqLogger.Info("Checking podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 
-	//// Update the status if necessary
-	//if int32(len(existingPodNames)) > 0 {
-	//	status := dataclondv1.PodSetStatus{
-	//		Replicas: int32(len(existingPodNames)),
-	//		PodNames: existingPodNames,
-	//	}
-	//	if !reflect.DeepEqual(podSet.Status, status) {
-	//		podSet.Status = status
-	//		err := r.Status().Update(context.TODO(), podSet)
-	//		if err != nil {
-	//			reqLogger.Error(err, "failed to update the podSet")
-	//			return reconcile.Result{}, err
-	//		}
-	//	}
-	//}
 	// delete pod
 	if podSet.Spec.Option == "delete" {
 		for _, pod := range existingPods {
@@ -150,7 +136,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	// Scale Down Pods
 	if int32(len(existingPodNames)) > replicas && podSet.Spec.Option == "scale_down" {
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
-		reqLogger.Info("Deleting a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+		reqLogger.Info("Deleting a pod in the podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 		pod := existingPods[0]
 		err = r.Delete(context.TODO(), &pod)
 		if err != nil {
@@ -163,7 +149,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	if int32(len(existingPodNames)) < replicas && podSet.Spec.Option == "scale_up" {
 		var diff = Difference(expectPods, existingPodNames)
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
-		reqLogger.Info("Adding a pod in the podset", "expected replicas", podSet.Spec.Replicas, "Pod.Names", existingPodNames)
+		reqLogger.Info("Adding a pod in the podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 		for _, podName := range diff {
 			pod := newPodForCR(podSet, podName)
 			if err := controllerutil.SetControllerReference(podSet, pod, r.Scheme); err != nil {
@@ -177,6 +163,12 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 			}
 		}
 	}
+	// Update the status for the PodSet, if needed.
+	err = updateStatus(r, podSet, existingPods)
+	if err != nil {
+		reqLogger.Error(err, "failed to update the podSet")
+		return reconcile.Result{}, err
+	}
 	return reconcile.Result{Requeue: true}, nil
 }
 
@@ -185,6 +177,17 @@ func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&dataclondv1.PodSet{}).
 		Complete(r)
 }
+
+// addPod will create a new Pod based on the given PodSet.
+func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
+	pod := newPodForCR(cr, podName)
+	err := controllerutil.SetControllerReference(cr, pod, r.Scheme)
+	if err != nil {
+		return err
+	}
+	return r.Create(context.TODO(), pod)
+}
+
 func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 	labels := labelsForPodSet(cr)
 	return &corev1.Pod{
@@ -267,6 +270,24 @@ func listPods(r *PodSetReconciler, cr *dataclondv1.PodSet) ([]corev1.Pod, error)
 		}
 	}
 	return pods, nil
+}
+
+// updateStatus will update PodNames with the current list of Pods managed by the the PodSet.
+func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod) error {
+	podNames := make([]string, 0)
+	for _, pod := range pods {
+		podNames = append(podNames, pod.Name)
+	}
+
+	if reflect.DeepEqual(cr.Status.PodNames, podNames) {
+		return nil
+	}
+	status := dataclondv1.PodSetStatus{
+		Replicas: int32(len(pods)),
+		PodNames: podNames,
+	}
+	cr.Status = status
+	return r.Update(context.TODO(), cr)
 }
 
 // Difference of string arrays
