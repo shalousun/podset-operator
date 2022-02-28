@@ -37,7 +37,16 @@ pod缩容
 ```shell
 kubectl apply -f config/samples/scale_down.yaml
 ```
-## 卸载
+## Build image
 ```shell
-kubectl delete -f config/samples/data.clond_v1_podset.yaml
+docker login -u shaloudocker -p sy654321
+make docker-build docker-push IMG=shaloudocker/podset:v1
+```
+部署
+```shell
+make deploy IMG=shaloudocker/podset:v1
+```
+## Uninstall And Clean
+```shell
+make uninstall
 ```
