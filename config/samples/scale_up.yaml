@@ -4,7 +4,7 @@ metadata:
   name: podset-sample
 spec:
   # Add fields here
-  replicas: 4
+  replicas: 3
   option: scale_up
   port: 80
   targetPort: 80

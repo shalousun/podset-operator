@@ -176,6 +176,14 @@ func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // addPod will create a new Pod based on the given PodSet.
 func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
+	if cr.Spec.StorageClass != "" {
+		pvc, err := newPVCForCR(cr, podName)
+		if err != nil {
+			return err
+		}
+		return r.Create(context.TODO(), pvc)
+	}
+
 	pod := newPodForCR(cr, podName)
 	err := controllerutil.SetControllerReference(cr, pod, r.Scheme)
 	if err != nil {
@@ -183,11 +191,13 @@ func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
 	}
 	return r.Create(context.TODO(), pod)
 }
-func newPVCForCR(cr *dataclondv1.PodSet) *corev1.PersistentVolumeClaim {
+
+// generate pvc name
+func newPVCForCR(cr *dataclondv1.PodSet, pvcName string) (*corev1.PersistentVolumeClaim, error) {
 	storageSize, _ := resource.ParseQuantity(cr.Spec.StorageSize)
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name,
+			Name:      pvcName,
 			Namespace: cr.Namespace,
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
@@ -202,7 +212,7 @@ func newPVCForCR(cr *dataclondv1.PodSet) *corev1.PersistentVolumeClaim {
 			StorageClassName: &cr.Spec.StorageClass,
 		},
 	}
-	return pvc
+	return pvc, nil
 
 }
 func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
@@ -237,7 +247,7 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 				Name: "test",
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: "test-pvc",
+						ClaimName: podName, // user pod name as pvc name
 					},
 				},
 			},
