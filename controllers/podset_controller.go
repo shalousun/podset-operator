@@ -244,7 +244,7 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 		}
 		pod.Spec.Volumes = []corev1.Volume{
 			{
-				Name: "test",
+				Name: "data",
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 						ClaimName: podName, // user pod name as pvc name
