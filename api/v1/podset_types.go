@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	Image string = "nginx:alpine"
+	Image  string = "nginx:alpine"
+	DELETE        = "delete"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!

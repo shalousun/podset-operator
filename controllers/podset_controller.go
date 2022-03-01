@@ -120,7 +120,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	reqLogger.Info("Checking podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 
 	// delete pod
-	if podSet.Spec.Option == "delete" {
+	if podSet.Spec.Option == dataclondv1.DELETE {
 		for _, pod := range existingPods {
 			for _, name := range podSet.Spec.PodLists {
 				if name == pod.Name {
@@ -135,7 +135,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Scale Down Pods
-	if int32(len(existingPodNames)) > replicas && podSet.Spec.Option == "scale_down" {
+	if int32(len(existingPodNames)) > replicas && podSet.Spec.Option != dataclondv1.DELETE {
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Deleting a pod in the podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 		pod := existingPods[0]
@@ -147,7 +147,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	}
 
 	// Scale Up Pods
-	if int32(len(existingPodNames)) < replicas && podSet.Spec.Option == "scale_up" {
+	if int32(len(existingPodNames)) < replicas && podSet.Spec.Option != dataclondv1.DELETE {
 		var diff = Difference(expectPods, existingPodNames)
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Adding a pod in the podset", "expected replicas", replicas, "Pod.Names", existingPodNames)

@@ -5,7 +5,6 @@ metadata:
 spec:
   # Add fields here
   replicas: 3
-  option: scale_up
   port: 80
   targetPort: 80
   storageClass: fast-disks
