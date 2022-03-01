@@ -8,5 +8,7 @@ spec:
   option: delete
   port: 80
   targetPort: 80
+  storageClass: default
+  storageSize: 2Gi
   podLists:
     - 'podset-sample-2'

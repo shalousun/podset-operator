@@ -20,6 +20,7 @@ import (
 	"context"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -182,10 +183,31 @@ func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
 	}
 	return r.Create(context.TODO(), pod)
 }
+func newPVCForCR(cr *dataclondv1.PodSet) *corev1.PersistentVolumeClaim {
+	storageSize, _ := resource.ParseQuantity(cr.Spec.StorageSize)
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: storageSize,
+				},
+			},
+			StorageClassName: &cr.Spec.StorageClass,
+		},
+	}
+	return pvc
 
+}
 func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 	labels := labelsForPodSet(cr)
-	return &corev1.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: cr.Namespace,
@@ -206,6 +228,22 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 			},
 		},
 	}
+	if cr.Spec.StorageClass != "" {
+		pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+			{Name: "data", MountPath: "/mnt"},
+		}
+		pod.Spec.Volumes = []corev1.Volume{
+			{
+				Name: "test",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: "test-pvc",
+					},
+				},
+			},
+		}
+	}
+	return pod
 }
 
 func newService(cr *dataclondv1.PodSet) *corev1.Service {

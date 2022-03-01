@@ -8,3 +8,5 @@ spec:
   option: scale_up
   port: 80
   targetPort: 80
+  storageClass: default
+  storageSize: 2Gi

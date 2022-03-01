@@ -34,6 +34,10 @@ type PodSetSpec struct {
 	PodLists   []string `json:"podLists"`
 	Port       int32    `json:"port"`
 	TargetPort int32    `json:"targetPort"`
+	// 持久化存储类型
+	StorageClass string `json:"storageClass,omitempty"`
+	// 存储大小
+	StorageSize string `json:"storageSize,omitempty"`
 }
 
 // PodSetStatus defines the observed state of PodSet
