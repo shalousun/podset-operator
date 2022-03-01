@@ -177,11 +177,19 @@ func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // addPod will create a new Pod based on the given PodSet.
 func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
 	if cr.Spec.StorageClass != "" {
+		// Check if pvc already exists
 		pvc, err := newPVCForCR(cr, podName)
 		if err != nil {
 			return err
 		}
-		return r.Create(context.TODO(), pvc)
+		pvcFound := &corev1.PersistentVolumeClaim{}
+		err = r.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, pvcFound)
+		if err != nil && errors.IsNotFound(err) {
+			err = r.Create(context.TODO(), pvc)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	pod := newPodForCR(cr, podName)

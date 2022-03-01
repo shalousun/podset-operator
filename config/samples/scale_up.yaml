@@ -8,5 +8,5 @@ spec:
   option: scale_up
   port: 80
   targetPort: 80
-  storageClass: default
+  storageClass: fast-disks
   storageSize: 2Gi
