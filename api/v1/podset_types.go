@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -38,6 +39,8 @@ type PodSetSpec struct {
 	StorageClass string `json:"storageClass,omitempty"`
 	// 存储大小
 	StorageSize string `json:"storageSize,omitempty"`
+
+	Env []corev1.EnvVar `json:"env"`
 }
 
 // PodSetStatus defines the observed state of PodSet

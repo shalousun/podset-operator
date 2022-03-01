@@ -242,6 +242,7 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 							Protocol:      corev1.ProtocolTCP,
 						},
 					},
+					Env: cr.Spec.Env,
 				},
 			},
 		},
