@@ -32,8 +32,8 @@ const (
 // PodSetSpec defines the desired state of PodSet
 type PodSetSpec struct {
 	Replicas   int32    `json:"replicas"`
-	Option     string   `json:"option"`
-	PodLists   []string `json:"podLists"`
+	Option     string   `json:"option,omitempty"`
+	PodLists   []string `json:"podLists,omitempty"`
 	Port       int32    `json:"port"`
 	TargetPort int32    `json:"targetPort"`
 	// 持久化存储类型
@@ -41,7 +41,7 @@ type PodSetSpec struct {
 	// 存储大小
 	StorageSize string `json:"storageSize,omitempty"`
 
-	Env []corev1.EnvVar `json:"env"`
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 
 // PodSetStatus defines the observed state of PodSet
