@@ -249,7 +249,7 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 	}
 	if cr.Spec.StorageClass != "" {
 		pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
-			{Name: "data", MountPath: "/mnt"},
+			{Name: "data", MountPath: "/usr/share/nginx/html"},
 		}
 		pod.Spec.Volumes = []corev1.Volume{
 			{
