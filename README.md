@@ -41,6 +41,19 @@ kubectl apply -f config/samples/scale_down.yaml
 ```shell
 kubectl delete -f config/samples/data.clond_v1_podset.yaml
 ```
+pod查看
+```shell
+kubectl get pod
+```
+operator查看
+```shell
+kubectl get podset
+```
+operator的状态查看
+```shell
+kubectl describe podset podset-sample
+```
+operator的状态也是在controller中设置的。
 ## Build image
 ```shell
 docker login -u shaloudocker -p sy654321

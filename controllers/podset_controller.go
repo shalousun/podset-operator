@@ -330,8 +330,9 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 	for _, pod := range pods {
 		podNames = append(podNames, pod.Name)
 	}
-
+	r.Log.Info("Reconciling PodSet status","podName",cr.Name,"PodNames",podNames,"StatusPodNames",cr.Status.PodNames)
 	if reflect.DeepEqual(cr.Status.PodNames, podNames) {
+		r.Log.Info("Not update PodSet status")
 		return nil
 	}
 	status := dataclondv1.PodSetStatus{
@@ -339,9 +340,18 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 		PodNames: podNames,
 	}
 	cr.Status = status
+	annotations := cr.GetAnnotations()
+	annotations["foo"] = "foo"
+	cr.SetAnnotations(annotations)
+	r.Log.Info("Reconciling PodSet annotation","podName",cr.Name)
 	return r.Update(context.TODO(), cr)
 }
-
+func addAnnotations(r *PodSetReconciler,cr *dataclondv1.PodSet) error  {
+	annotations := cr.GetAnnotations()
+	annotations["foo"] = "foo"
+	cr.SetAnnotations(annotations)
+	return r.Update(context.TODO(), cr)
+}
 // Difference of string arrays
 func Difference(a, b []string) (diff []string) {
 	m := make(map[string]bool)
