@@ -42,6 +42,9 @@ type PodSetSpec struct {
 	StorageSize string `json:"storageSize,omitempty"`
 
 	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// 部署资源需求
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // PodSetStatus defines the observed state of PodSet

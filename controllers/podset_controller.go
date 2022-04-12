@@ -72,6 +72,7 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 	replicas := podSet.Spec.Replicas
 	if replicas%2 == 0 {
 		replicas = replicas + 1
+		podSet.Spec.Replicas = replicas
 	}
 
 	// Define a new service object
@@ -225,6 +226,12 @@ func newPVCForCR(cr *dataclondv1.PodSet, pvcName string) (*corev1.PersistentVolu
 }
 func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 	labels := labelsForPodSet(cr)
+	env := []corev1.EnvVar{{
+		Name:  "SERVERS",
+		Value: strconv.Itoa(int(cr.Spec.Replicas)),
+	}}
+
+	mergeEnv := append(env, cr.Spec.Env...)
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -232,6 +239,8 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
+			Hostname: podName,// for headless svc
+			Subdomain: cr.Name,// for headless svc
 			Containers: []corev1.Container{
 				{
 					Name:  cr.Name,
@@ -242,7 +251,8 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 							Protocol:      corev1.ProtocolTCP,
 						},
 					},
-					Env: cr.Spec.Env,
+					Resources: cr.Spec.Resources,
+					Env: mergeEnv,
 				},
 			},
 		},
