@@ -226,12 +226,6 @@ func newPVCForCR(cr *dataclondv1.PodSet, pvcName string) (*corev1.PersistentVolu
 }
 func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 	labels := labelsForPodSet(cr)
-	env := []corev1.EnvVar{{
-		Name:  "SERVERS",
-		Value: strconv.Itoa(int(cr.Spec.Replicas)),
-	}}
-
-	mergeEnv := append(env, cr.Spec.Env...)
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
@@ -252,7 +246,7 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 						},
 					},
 					Resources: cr.Spec.Resources,
-					Env: mergeEnv,
+					Env: getENV(cr),
 				},
 			},
 		},
@@ -364,6 +358,16 @@ func addAnnotations(r *PodSetReconciler, cr *dataclondv1.PodSet) error {
 	annotations["foo"] = "foo"
 	cr.SetAnnotations(annotations)
 	return r.Update(context.TODO(), cr)
+}
+
+// get env
+func getENV(cr *dataclondv1.PodSet) []corev1.EnvVar {
+	envs := []corev1.EnvVar{{
+		Name:  "SERVERS",
+		Value: strconv.Itoa(int(cr.Spec.Replicas)),
+	}}
+	envs = append(envs, cr.Spec.Env...)
+	return envs
 }
 
 // Difference of string arrays
