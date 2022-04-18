@@ -63,6 +63,18 @@ make docker-build docker-push IMG=shaloudocker/podset:v1
 ```shell
 make deploy IMG=shaloudocker/podset:v1
 ```
+## Build Yaml
+可以单独在`Makefile`下添加构建输出`yaml`的编排。
+```
+allYaml: manifests
+	cd config/manager && kustomize edit set image controller=${IMG}
+	kustomize build config/default >  config/manifests/all.yaml
+```
+然后执行新增的命令即可。
+```shell
+make allYaml IMG=shaloudocker/podset:v1
+```
+开发完成后就可以使用这个模板直接到环境上了。
 ## Uninstall And Clean
 ```shell
 make uninstall
