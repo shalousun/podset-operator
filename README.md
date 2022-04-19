@@ -56,7 +56,6 @@ kubectl describe podset podset-sample
 operator的状态也是在controller中设置的。
 ## Build image
 ```shell
-docker login -u shaloudocker -p sy654321
 make docker-build docker-push IMG=shaloudocker/podset:v1
 ```
 部署
