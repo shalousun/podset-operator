@@ -36,7 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	dataclondv1 "podset-operator/api/v1"
+	dataclondv1 "github.com/shalousun/podset-operator/api/v1"
 )
 
 var log = logf.Log.WithName("controller_podset")

@@ -1,4 +1,4 @@
-module podset-operator
+module github.com/shalousun/podset-operator
 
 go 1.13
 
