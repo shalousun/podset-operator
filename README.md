@@ -57,8 +57,6 @@ operator的状态也是在controller中设置的。
 ## Build image
 ```shell
 make docker-build docker-push IMG=shaloudocker/podset:v1
-# build by local
-make docker-build-locally docker-push IMG=shaloudocker/podset:v1
 ```
 部署
 ```shell
