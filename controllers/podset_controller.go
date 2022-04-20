@@ -50,6 +50,8 @@ type PodSetReconciler struct {
 
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=v1,resources=pods,verbs=get;list;watch;create;update;patch;delete
 
 func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
@@ -233,8 +235,8 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
-			Hostname: podName,// for headless svc
-			Subdomain: cr.Name,// for headless svc
+			Hostname:  podName, // for headless svc
+			Subdomain: cr.Name, // for headless svc
 			Containers: []corev1.Container{
 				{
 					Name:  cr.Name,
@@ -246,7 +248,7 @@ func newPodForCR(cr *dataclondv1.PodSet, podName string) *corev1.Pod {
 						},
 					},
 					Resources: cr.Spec.Resources,
-					Env: getENV(cr),
+					Env:       getENV(cr),
 				},
 			},
 		},
