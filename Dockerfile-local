@@ -1,6 +1,0 @@
-FROM registry.cn-hangzhou.aliyuncs.com/shalousun/distroless:nonroot
-WORKDIR /
-COPY manager manager
-USER nonroot:nonroot
-
-ENTRYPOINT ["/manager"]
