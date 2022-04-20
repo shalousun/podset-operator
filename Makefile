@@ -63,7 +63,7 @@ docker-build: test
 	docker build . -t ${IMG}
 
 # Custom Add,Build the image locally
-docker-build-local: test
+docker-build-locally: test
 	go build -a -o manager main.go
 	docker build -t ${IMG} -f Dockerfile-local .
 
