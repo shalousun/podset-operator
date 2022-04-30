@@ -30,13 +30,14 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strconv"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	dataclondv1 "github.com/shalousun/podset-operator/api/v1"
+	dataclondv1 "podset-operator/api/v1"
 )
 
 var log = logf.Log.WithName("controller_podset")
@@ -339,7 +340,7 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 		if annotations == nil {
 			annotations = make(map[string]string)
 		}
-		annotations["foo"] = "foo"
+		annotations["foo"] = time.Now().Format(time.RFC850)
 		r.Log.Info("Update pod annotations", "podName", pod.Name)
 		err := r.Update(context.TODO(), &pod)
 		if err != nil {
