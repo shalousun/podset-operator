@@ -340,7 +340,7 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 			annotations = make(map[string]string)
 		}
 		annotations["foo"] = "foo"
-		r.Log.Info("Update pod annotations", "podName", podNames)
+		r.Log.Info("Update pod annotations", "podName", pod.Name)
 		err := r.Update(context.TODO(), &pod)
 		if err != nil {
 			r.Log.Error(err, "Update Pod annotation error")
