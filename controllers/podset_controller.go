@@ -336,8 +336,15 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 	for _, pod := range pods {
 		podNames = append(podNames, pod.Name)
 		annotations := pod.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
 		annotations["foo"] = "foo"
-		r.Update(context.TODO(), &pod)
+		r.Log.Info("Update pod annotations", "podName", podNames)
+		err := r.Update(context.TODO(), &pod)
+		if err != nil {
+			r.Log.Error(err, "Update Pod annotation error")
+		}
 	}
 	r.Log.Info("Reconciling PodSet status", "podName", cr.Name, "PodNames", podNames, "StatusPodNames", cr.Status.PodNames)
 	if reflect.DeepEqual(cr.Status.PodNames, podNames) {
@@ -350,6 +357,9 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 	}
 	cr.Status = status
 	annotations := cr.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 	annotations["foo"] = "foo"
 	cr.SetAnnotations(annotations)
 	r.Log.Info("Reconciling PodSet annotation", "podName", cr.Name)
