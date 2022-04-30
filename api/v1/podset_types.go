@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	Image  string = "nginx:alpine"
+	Image  string = "registry.cn-shanghai.aliyuncs.com/shalousun/nginx-alpine:1.18.0-alpine"
 	DELETE        = "delete"
 )
 
