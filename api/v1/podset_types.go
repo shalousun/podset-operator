@@ -49,8 +49,10 @@ type PodSetSpec struct {
 
 // PodSetStatus defines the observed state of PodSet
 type PodSetStatus struct {
-	Replicas int32    `json:"replicas"`
-	PodNames []string `json:"podNames"`
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
+	// +optional
+	PodNames []string `json:"podNames,omitempty"`
 }
 
 // +kubebuilder:object:root=true
