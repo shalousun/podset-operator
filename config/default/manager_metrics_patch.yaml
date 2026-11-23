@@ -1,0 +1,18 @@
+# The manager serves metrics over HTTPS and protects them with Kubernetes
+# authentication and authorization (TokenReview + SubjectAccessReview).
+# controller-runtime generates a self-signed serving certificate when none is
+# mounted, so neither cert-manager nor a kube-rbac-proxy sidecar is required.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        args:
+        - "--metrics-addr=:8443"
+        - "--metrics-secure=true"
+        - "--enable-leader-election"

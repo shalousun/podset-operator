@@ -616,17 +616,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: podset-operator-metrics-reader
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: podset-operator-proxy-role
+  name: podset-operator-metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -640,6 +630,16 @@ rules:
   - subjectaccessreviews
   verbs:
   - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: podset-operator-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -671,11 +671,11 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: podset-operator-proxy-rolebinding
+  name: podset-operator-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: podset-operator-proxy-role
+  name: podset-operator-metrics-auth-role
 subjects:
 - kind: ServiceAccount
   name: default
@@ -715,22 +715,17 @@ spec:
     spec:
       containers:
       - args:
-        - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http://127.0.0.1:8080/
-        - --logtostderr=true
-        - --v=10
-        image: registry.cn-hangzhou.aliyuncs.com/shalousun/kubebuilder-kube-rbac-proxy:v0.5.0
-        name: kube-rbac-proxy
-        ports:
-        - containerPort: 8443
-          name: https
-      - args:
-        - --metrics-addr=127.0.0.1:8080
+        - --metrics-addr=:8443
+        - --metrics-secure=true
         - --enable-leader-election
         command:
         - /manager
         image: shaloudocker/podset:v1
         name: manager
+        ports:
+        - containerPort: 8443
+          name: https
+          protocol: TCP
         resources:
           limits:
             cpu: "1"

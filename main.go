@@ -24,6 +24,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	dataclondv1 "podset-operator/api/v1"
@@ -45,10 +46,14 @@ func init() {
 
 func main() {
 	var metricsAddr string
+	var secureMetrics bool
 	var enableLeaderElection bool
 	var kubeAPIQPS int
 	var kubeAPIBurst int
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-addr", ":8443", "The address the metric endpoint binds to.")
+	flag.BoolVar(&secureMetrics, "metrics-secure", true,
+		"Serve metrics over HTTPS with Kubernetes authentication and authorization. "+
+			"The manager needs create permission on tokenreviews and subjectaccessreviews.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -70,9 +75,15 @@ func main() {
 		cfg.Burst = kubeAPIBurst
 	}
 
+	metricsOptions := metricsserver.Options{BindAddress: metricsAddr}
+	if secureMetrics {
+		metricsOptions.SecureServing = true
+		metricsOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+	}
+
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:           scheme,
-		Metrics:          metricsserver.Options{BindAddress: metricsAddr},
+		Metrics:          metricsOptions,
 		LeaderElection:   enableLeaderElection,
 		LeaderElectionID: "dda390eb.com.shalousun",
 	})
