@@ -1,5 +1,7 @@
 # PodLoadTest 并发 200 基准：argo-high / 5000 Pods
 
+> 后续 60s 任务实验见 [1-minute benchmark](./2026-11-23-argo-high-5000-pods-1min.md)。
+
 > 前置基准：[v1 优化前](./2026-11-23-argo-high-5000-pods.md) / [v2 并发 100](./2026-11-23-argo-high-5000-pods-optimized.md)
 
 - 日期：2026-11-23
