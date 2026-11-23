@@ -1,0 +1,51 @@
+# PodLoadTest optimized benchmark: argo-high, 2026-11-23, 5000 Pods (run3)
+# status: {"completionTime":"2026-11-23T08:16:55Z","observedGeneration":1,"phase":"Completed","startTime":"2026-11-23T08:14:41Z","submitted":5000}
+# operator image: tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/podset-operator:v2
+# filtered from /tmp/argo3-metrics-final.txt
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.5"} 0
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="1"} 0
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="2"} 0
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="5"} 0
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="10"} 21
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="20"} 4675
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="30"} 4838
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="60"} 4902
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="120"} 4945
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="300"} 4999
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="600"} 4999
+podloadtest_pod_completion_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="+Inf"} 4999
+podloadtest_pod_completion_duration_seconds_sum{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 76214
+podloadtest_pod_completion_duration_seconds_count{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 4999
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.001"} 0
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.005"} 0
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.01"} 68
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.025"} 697
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.05"} 820
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.1"} 850
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.25"} 850
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.5"} 850
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="1"} 850
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="2.5"} 2848
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="5"} 4701
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="10"} 4995
+podloadtest_pod_create_duration_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="+Inf"} 5000
+podloadtest_pod_create_duration_seconds_sum{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 11148.178207567997
+podloadtest_pod_create_duration_seconds_count{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 5000
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="0.5"} 0
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="1"} 0
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="2"} 0
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="5"} 0
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="10"} 0
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="30"} 1325
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="60"} 2981
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="120"} 4847
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="300"} 4999
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="600"} 4999
+podloadtest_pod_lifetime_seconds_bucket{namespace="podloadtest-run3",podloadtest="podloadtest-sample",le="+Inf"} 4999
+podloadtest_pod_lifetime_seconds_sum{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 265318.00434605696
+podloadtest_pod_lifetime_seconds_count{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 4999
+podloadtest_pod_reclaim_errors_total{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 23
+podloadtest_pods_created_total{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 5000
+podloadtest_pods_in_flight{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 0
+podloadtest_pods_reclaimed_total{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 5000
+podloadtest_submission_rate_per_second{namespace="podloadtest-run3",podloadtest="podloadtest-sample"} 0
