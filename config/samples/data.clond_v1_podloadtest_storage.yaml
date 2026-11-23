@@ -1,0 +1,50 @@
+apiVersion: data.clond.com.shalousun/v1
+kind: PodLoadTest
+metadata:
+  name: podloadtest-storage
+spec:
+  total: 200
+  maxInFlight: 50
+  submitRatePerSecond: 20
+  submitBurst: 20
+  createConcurrency: 10
+  # 未完成 Pod 的超时回收；应大于 POD_RUN_SECONDS + 卷准备时间。
+  podTimeoutSeconds: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: busybox:1.36
+        env:
+        # Pod 运行时长（秒），由下面的 command 直接使用。
+        # 修改这个值，或直接在 command 里写死 sleep 的秒数。
+        - name: POD_RUN_SECONDS
+          value: "30"
+        # 先写卷，再按 POD_RUN_SECONDS 保持运行，便于观察 PV/PVC 绑定和存储 IO 过程。
+        command:
+        - sh
+        - -c
+        - |
+          dd if=/dev/zero of=/data/test bs=1M count=8 && sync && \
+          echo "data written, keeping pod alive for ${POD_RUN_SECONDS:-30}s" && \
+          sleep "${POD_RUN_SECONDS:-30}"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+  # Every Pod gets its own PVC, created before the Pod and deleted after it.
+  storage:
+    # Change this to a StorageClass available in your test cluster.
+    storageClassName: fast-disks
+    size: 1Gi
+    accessModes:
+    - ReadWriteOnce
+    mountPath: /data
+  cleanup:
+    deleteCompletedPods: true
+    deletePVCs: true
+    ttlSecondsAfterFinished: 0

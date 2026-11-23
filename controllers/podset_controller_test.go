@@ -55,7 +55,10 @@ var _ = Describe("PodSet controller", func() {
 		Expect(k8sClient.Get(ctx, key, svc)).To(Succeed())
 
 		pods := &corev1.PodList{}
-		Expect(k8sClient.List(ctx, pods, client.InNamespace(key.Namespace))).To(Succeed())
+		Expect(k8sClient.List(ctx, pods,
+			client.InNamespace(key.Namespace),
+			client.MatchingLabels(map[string]string{"app": podSet.Name}),
+		)).To(Succeed())
 		Expect(pods.Items).To(HaveLen(3))
 
 		// Simulate the kubelet reporting the Pods as running.

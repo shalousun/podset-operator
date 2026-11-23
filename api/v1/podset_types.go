@@ -23,7 +23,7 @@ import (
 
 const (
 	Image  string = "registry.cn-shanghai.aliyuncs.com/shalousun/nginx-alpine:1.18.0-alpine"
-	DELETE        = "delete"
+	DELETE string = "delete"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -73,8 +73,4 @@ type PodSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []PodSet `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&PodSet{}, &PodSetList{})
 }
