@@ -39,6 +39,8 @@ import (
 type PodReclaimer struct {
 	client.Client
 	Scheme *runtime.Scheme
+	// Concurrency is the number of reclaimer workers. Zero uses the default.
+	Concurrency int
 }
 
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podloadtests,verbs=get;list;watch
@@ -94,7 +96,11 @@ func (r *PodReclaimer) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Re
 	}
 
 	logger.Info("reclaiming pod", "phase", pod.Status.Phase, "podloadtest", runName)
-	if err := r.Delete(ctx, pod); err != nil && !apierrors.IsNotFound(err) {
+	deleteStart := time.Now()
+	err := r.Delete(ctx, pod)
+	podDeleteDurationSeconds.WithLabelValues(pod.Namespace, runName).
+		Observe(time.Since(deleteStart).Seconds())
+	if err != nil && !apierrors.IsNotFound(err) {
 		podReclaimErrorsTotal.WithLabelValues(pod.Namespace, runName).Inc()
 		return ctrl.Result{}, err
 	}
@@ -194,9 +200,13 @@ func (r *PodReclaimer) SetupWithManager(mgr ctrl.Manager) error {
 	// High-churn load tests complete Pods faster than a single worker can
 	// delete them; use a larger worker pool so reclamation keeps up with
 	// submission and does not accumulate Pod metadata.
+	concurrency := r.Concurrency
+	if concurrency <= 0 {
+		concurrency = 50
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("pod-reclaimer").
-		WithOptions(controller.Options{MaxConcurrentReconciles: 50}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: concurrency}).
 		For(&corev1.Pod{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			labels := obj.GetLabels()

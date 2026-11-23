@@ -50,6 +50,7 @@ func main() {
 	var enableLeaderElection bool
 	var kubeAPIQPS int
 	var kubeAPIBurst int
+	var reclaimerConcurrency int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8443", "The address the metric endpoint binds to.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"Serve metrics over HTTPS with Kubernetes authentication and authorization. "+
@@ -61,6 +62,8 @@ func main() {
 		"Maximum QPS for requests to the Kubernetes API. Zero keeps the client-go default (20).")
 	flag.IntVar(&kubeAPIBurst, "kube-api-burst", 2000,
 		"Maximum burst for requests to the Kubernetes API. Zero keeps the client-go default (30).")
+	flag.IntVar(&reclaimerConcurrency, "reclaimer-concurrency", 50,
+		"Number of concurrent Pod reclamation workers.")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -108,8 +111,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.PodReclaimer{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Concurrency: reclaimerConcurrency,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PodReclaimer")
 		os.Exit(1)

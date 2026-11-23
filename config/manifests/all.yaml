@@ -93,7 +93,7 @@ spec:
                   CreateConcurrency is the number of Pod create requests that may run in
                   parallel. Increase it when the API server can handle more concurrency.
                 format: int32
-                maximum: 100
+                maximum: 500
                 minimum: 1
                 type: integer
               durationSeconds:
@@ -734,8 +734,8 @@ spec:
         resources:
           limits:
             cpu: "1"
-            memory: 1Gi
+            memory: 2Gi
           requests:
             cpu: 100m
-            memory: 128Mi
+            memory: 256Mi
       terminationGracePeriodSeconds: 10

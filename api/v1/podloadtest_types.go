@@ -72,7 +72,7 @@ type PodLoadTestSpec struct {
 	// +optional
 	// +kubebuilder:default=10
 	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=100
+	// +kubebuilder:validation:Maximum=500
 	CreateConcurrency int32 `json:"createConcurrency,omitempty"`
 
 	// DurationSeconds stops submission after this many seconds. Zero means no

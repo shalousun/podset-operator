@@ -123,6 +123,9 @@ curl -sk -H "Authorization: Bearer ${TOKEN}" https://127.0.0.1:8443/metrics | he
 | `podloadtest_pods_reclaimed_total` | 已回收的 Pod 数 |
 | `podloadtest_pod_lifetime_seconds` | 完成 Pod 的生命周期分布 |
 | `podloadtest_pod_completion_duration_seconds` | Pod 从创建到完成（Succeeded/Failed）的耗时，不含回收队列等待 |
+| `podloadtest_pod_delete_duration_seconds` | 回收器发出 Pod delete 请求的 API 延迟 |
+
+回收并发可通过 manager 参数 `--reclaimer-concurrency` 调整（默认 50）。
 
 每秒提交数：
 

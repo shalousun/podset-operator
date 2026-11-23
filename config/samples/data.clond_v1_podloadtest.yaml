@@ -10,7 +10,7 @@ spec:
   # Client-side token bucket: at most 300 Pods/second, bursts of 300.
   submitRatePerSecond: 300
   submitBurst: 300
-  # Number of parallel Pod create requests.
+  # Number of parallel Pod create requests (CRD max 500; 100 is a good balance).
   createConcurrency: 100
   # Stop submitting after 10 minutes even if total has not been reached.
   durationSeconds: 600
