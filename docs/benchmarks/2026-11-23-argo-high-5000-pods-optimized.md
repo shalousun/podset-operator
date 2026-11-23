@@ -1,5 +1,7 @@
 # PodLoadTest 优化版基准：argo-high / 5000 Pods
 
+> 后续并发 200 实验见 [concurrency-200 benchmark](./2026-11-23-argo-high-5000-pods-concurrency-200.md)。
+
 - 日期：2026-11-23
 - 集群：`~/.kube/argo-high`（ACK，v1.36.2，49 节点）
 - Operator 镜像：`tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/podset-operator:v2`
