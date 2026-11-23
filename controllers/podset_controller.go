@@ -28,7 +28,6 @@ import (
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strconv"
 	"time"
 
@@ -53,24 +52,23 @@ type PodSetReconciler struct {
 // +kubebuilder:rbac:groups=data.clond.com.shalousun,resources=podsets/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=v1,resources=pods,verbs=get;list;watch;create;update;patch;delete
 
-func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+func (r *PodSetReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling PodSet")
 
 	// Fetch the PodSet instance
 	podSet := &dataclondv1.PodSet{}
-	err := r.Get(context.TODO(), request.NamespacedName, podSet)
+	err := r.Get(ctx, request.NamespacedName, podSet)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 	replicas := podSet.Spec.Replicas
 	if replicas%2 == 0 {
@@ -83,19 +81,19 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 
 	// Set PodSet instance as the owner and controller
 	if err := controllerutil.SetControllerReference(podSet, service, r.Scheme); err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// Check if service already exists
 	serviceFound := &corev1.Service{}
-	err = r.Get(context.TODO(), types.NamespacedName{Name: service.Name, Namespace: service.Namespace}, serviceFound)
+	err = r.Get(ctx, types.NamespacedName{Name: service.Name, Namespace: service.Namespace}, serviceFound)
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new service", "Service.Namespace", service.Namespace, "Service.Name", service.Name)
-		err = r.Create(context.TODO(), service)
+		err = r.Create(ctx, service)
 		if err != nil {
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
-		return reconcile.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	var expectPods []string
@@ -104,10 +102,10 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		expectPods = append(expectPods, podName)
 	}
 	// List all pods owned by this PodSet instance
-	existingPods, err := listPods(r, podSet)
+	existingPods, err := listPods(ctx, r, podSet)
 	if err != nil {
 		reqLogger.Error(err, "failed to list existing pods in the podSet")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 	var existingPodNames []string
 
@@ -128,10 +126,10 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		for _, pod := range existingPods {
 			for _, name := range podSet.Spec.PodLists {
 				if name == pod.Name {
-					err = r.Delete(context.TODO(), &pod)
+					err = r.Delete(ctx, &pod)
 					if err != nil {
 						reqLogger.Error(err, "failed to delete a pod %s", name)
-						return reconcile.Result{}, err
+						return ctrl.Result{}, err
 					}
 				}
 			}
@@ -143,10 +141,10 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		// delete a pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Deleting a pod in the podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 		pod := existingPods[0]
-		err = r.Delete(context.TODO(), &pod)
+		err = r.Delete(ctx, &pod)
 		if err != nil {
 			reqLogger.Error(err, "failed to delete a pod")
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -156,20 +154,20 @@ func (r *PodSetReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		// create a new pod. Just one at a time (this reconciler will be called again afterwards)
 		reqLogger.Info("Adding a pod in the podset", "expected replicas", replicas, "Pod.Names", existingPodNames)
 		for _, podName := range diff {
-			err := addPod(r, podSet, podName)
+			err := addPod(ctx, r, podSet, podName)
 			if err != nil {
 				reqLogger.Error(err, "failed to create a pod")
-				return reconcile.Result{}, err
+				return ctrl.Result{}, err
 			}
 		}
 	}
 	// Update the status for the PodSet, if needed.
-	err = updateStatus(r, podSet, existingPods)
+	err = updateStatus(ctx, r, podSet, existingPods)
 	if err != nil {
 		reqLogger.Error(err, "failed to update the podSet")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
-	return reconcile.Result{Requeue: true}, nil
+	return ctrl.Result{Requeue: true}, nil
 }
 
 func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -179,7 +177,7 @@ func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // addPod will create a new Pod based on the given PodSet.
-func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
+func addPod(ctx context.Context, r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
 	if cr.Spec.StorageClass != "" {
 		// Check if pvc already exists
 		pvc, err := newPVCForCR(cr, podName)
@@ -187,9 +185,9 @@ func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
 			return err
 		}
 		pvcFound := &corev1.PersistentVolumeClaim{}
-		err = r.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, pvcFound)
+		err = r.Get(ctx, types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, pvcFound)
 		if err != nil && errors.IsNotFound(err) {
-			err = r.Create(context.TODO(), pvc)
+			err = r.Create(ctx, pvc)
 			if err != nil {
 				return err
 			}
@@ -201,7 +199,7 @@ func addPod(r *PodSetReconciler, cr *dataclondv1.PodSet, podName string) error {
 	if err != nil {
 		return err
 	}
-	return r.Create(context.TODO(), pod)
+	return r.Create(ctx, pod)
 }
 
 // generate pvc name
@@ -216,7 +214,7 @@ func newPVCForCR(cr *dataclondv1.PodSet, pvcName string) (*corev1.PersistentVolu
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: storageSize,
 				},
@@ -312,12 +310,12 @@ func labelsForPodSet(cr *dataclondv1.PodSet) map[string]string {
 
 // listPods will return a slice containing the Pods owned by the Operator that
 // do not have a DeletionTimestamp set.
-func listPods(r *PodSetReconciler, cr *dataclondv1.PodSet) ([]corev1.Pod, error) {
+func listPods(ctx context.Context, r *PodSetReconciler, cr *dataclondv1.PodSet) ([]corev1.Pod, error) {
 	// List the pods for the given PodSet.
 	podList := &corev1.PodList{}
 	labelSelector := labels.SelectorFromSet(labelsForPodSet(cr))
 	listOps := &client.ListOptions{Namespace: cr.Namespace, LabelSelector: labelSelector}
-	err := r.List(context.TODO(), podList, listOps)
+	err := r.List(ctx, podList, listOps)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +330,7 @@ func listPods(r *PodSetReconciler, cr *dataclondv1.PodSet) ([]corev1.Pod, error)
 }
 
 // updateStatus will update PodNames with the current list of Pods managed by the the PodSet.
-func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod) error {
+func updateStatus(ctx context.Context, r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod) error {
 	podNames := make([]string, 0)
 	for _, pod := range pods {
 		podNames = append(podNames, pod.Name)
@@ -342,7 +340,7 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 		}
 		annotations["foo"] = time.Now().Format(time.RFC850)
 		r.Log.Info("Update pod annotations", "podName", pod.Name)
-		err := r.Update(context.TODO(), &pod)
+		err := r.Update(ctx, &pod)
 		if err != nil {
 			r.Log.Error(err, "Update Pod annotation error")
 		}
@@ -364,13 +362,16 @@ func updateStatus(r *PodSetReconciler, cr *dataclondv1.PodSet, pods []corev1.Pod
 	annotations["foo"] = "foo"
 	cr.SetAnnotations(annotations)
 	r.Log.Info("Reconciling PodSet annotation", "podName", cr.Name)
-	return r.Update(context.TODO(), cr)
+	return r.Update(ctx, cr)
 }
-func addAnnotations(r *PodSetReconciler, cr *dataclondv1.PodSet) error {
+func addAnnotations(ctx context.Context, r *PodSetReconciler, cr *dataclondv1.PodSet) error {
 	annotations := cr.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
 	annotations["foo"] = "foo"
 	cr.SetAnnotations(annotations)
-	return r.Update(context.TODO(), cr)
+	return r.Update(ctx, cr)
 }
 
 // get env

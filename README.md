@@ -8,9 +8,10 @@ This PodSet operator takes care of scaling up and down pods that run a sleep 360
 - demonstrate the logic of reconcialation when a custom resource changes, or when pods are added or removed by a user
 
 ## Requirements
+- controller-runtime: v0.25.x (k8s.io: v0.37.x)
 - kubebuilder version: v2.3.1+
-- kubernetes: v1.14+
-- go version: v1.13+
+- kubernetes: v1.16+ (CRD apiextensions.k8s.io/v1)
+- go version: v1.26+
 - docker version: 17.03+
 ## Building and deploying
 执行make install即可部署CRD到kubernetes：
