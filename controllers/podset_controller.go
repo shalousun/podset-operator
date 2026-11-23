@@ -305,6 +305,9 @@ func labelsForPodSet(cr *dataclondv1.PodSet) map[string]string {
 	for key, val := range cr.ObjectMeta.Labels {
 		labels[key] = val
 	}
+	// Keep the managed-by label authoritative: the manager cache only watches
+	// Pods carrying this label.
+	labels[managedByLabel] = podSetManagedByValue
 	return labels
 }
 

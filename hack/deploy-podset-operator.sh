@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 KUBECONFIG_PATH="${KUBECONFIG:-$HOME/.kube/ack}"
-IMAGE="tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/podset-operator:v3"
+IMAGE="tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/podset-operator:v4"
 NAMESPACE="podset-operator-system"
 DRY_RUN=0
 
@@ -18,7 +18,7 @@ usage() {
 Usage: deploy-podset-operator.sh [options]
 
   --kubeconfig PATH   kubeconfig to use (default: $KUBECONFIG or ~/.kube/ack)
-  --image IMAGE       manager image (default: .../infra/podset-operator:v3)
+  --image IMAGE       manager image (default: .../infra/podset-operator:v4)
   --namespace NAME    operator namespace (default: podset-operator-system)
   --dry-run           run read-only checks and print the plan; create nothing
   -h, --help          show this help

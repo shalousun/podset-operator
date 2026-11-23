@@ -2,7 +2,18 @@
 
 - 日期：2026-11-23
 - 目标集群：`~/.kube/ack`（ACK，v1.35.7）
-- 结论：**环境可执行，但当前不空闲，operator 尚未安装；测试脚本已准备好，等待空闲窗口执行。**
+- 结论：**环境可执行；operator 已部署（v4，稳定）；当前仍不空闲，1 分钟测试等待空闲窗口执行。**
+
+## 0. 部署记录
+
+- v3 初次部署到 `~/.kube/ack` 时出现 **OOMKilled**：manager 默认 cache 会把全集群
+  2.1 万个 Pod 都缓存进内存，2Gi limit 不够
+- 临时把 limit 提到 8Gi 先稳定
+- 代码修复（v4）：manager cache 只 watch
+  `app.kubernetes.io/managed-by in (podset-operator, podloadtest-operator)` 的 Pod；
+  PodSet 创建的 Pod 也补上该 label
+- v4 镜像已部署，**2Gi limit、0 重启**，leader election 和三个 controller 正常启动
+- 验证：reclaimer worker count 50；CRD/RBAC/metrics service 正常
 
 ## 1. 环境探测（只读）
 
@@ -13,7 +24,7 @@
 | 当前 Pod 总数 | **21,432** |
 | 当前 CPU（抽样节点） | 29%–61% |
 | 当前内存（抽样节点） | 22%–49% |
-| Operator | **未安装**（无 `podset-operator-system`，无 `data.clond` CRD） |
+| Operator | **已安装 v4**（`podset-operator-system`，1/1 Running，2Gi limit，0 重启） |
 | 权限 | 可创建 pods / namespaces / CRD / ClusterRoleBinding |
 | 默认 SA 拉取凭据 | `acr-credential-secret-aggregation`（default 命名空间） |
 | 资源配额 | 多个业务命名空间有 `platform-pods-*` 配额；新测试命名空间需在创建后确认 |
@@ -61,7 +72,7 @@
 ```bash
 ./hack/deploy-podset-operator.sh \
   --kubeconfig ~/.kube/ack \
-  --image tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/podset-operator:v3
+  --image tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/podset-operator:v4
 ```
 
 脚本会：
@@ -97,9 +108,9 @@
 
 ## 4. 待办
 
+- [x] 部署 operator（v4，cache 已限制为 managed Pod）
 - [ ] 等用户通知 ACK 集群空闲
-- [ ] 执行 3.1 部署 operator
-- [ ] 执行 3.2 1 分钟 5000 Pod 测试
+- [ ] 执行 1 分钟 5000 Pod 测试
 - [ ] 整理指标报表并写入 `docs/benchmarks/`
 
 > 注意：当前 ACK 集群有 21,432 个 Pod、CPU 30–60%，不是空闲状态；此时执行会混入其他业务负载，压测结果不可比。等空闲窗口再跑。
