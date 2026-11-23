@@ -1,0 +1,45 @@
+apiVersion: data.clond.com.shalousun/v1
+kind: PodLoadTest
+metadata:
+  name: podloadtest-sample
+spec:
+  # Total number of Pods to submit. 0 means "no limit".
+  total: 1000
+  # Never have more than this many unfinished Pods at once.
+  maxInFlight: 200
+  # Client-side token bucket: at most 100 Pods/second, bursts of 100.
+  submitRatePerSecond: 100
+  submitBurst: 100
+  # Number of parallel Pod create requests.
+  createConcurrency: 20
+  # Stop submitting after 10 minutes even if total has not been reached.
+  durationSeconds: 600
+  # Delete Pods that have not finished after 2 minutes.
+  podTimeoutSeconds: 120
+  template:
+    metadata:
+      labels:
+        app: podloadtest
+    spec:
+      # Pods must reach Succeeded to be reclaimed; Never is also the default
+      # applied by the controller when this field is empty.
+      restartPolicy: Never
+      containers:
+      - name: worker
+        image: busybox:1.36
+        # Completes quickly so the run measures submission, not runtime.
+        command: ["sh", "-c", "sleep 1; echo done"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+  cleanup:
+    # Delete Pods as soon as they reach Succeeded/Failed.
+    deleteCompletedPods: true
+    # Delete the per-Pod PVC as well.
+    deletePVCs: true
+    # Optional grace period after completion before deletion.
+    ttlSecondsAfterFinished: 0

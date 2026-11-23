@@ -93,7 +93,7 @@ func (r *PodSetReconciler) Reconcile(ctx context.Context, request ctrl.Request) 
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	var expectPods []string
@@ -167,7 +167,7 @@ func (r *PodSetReconciler) Reconcile(ctx context.Context, request ctrl.Request) 
 		reqLogger.Error(err, "failed to update the podSet")
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
 func (r *PodSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -284,7 +284,7 @@ func newService(cr *dataclondv1.PodSet) *corev1.Service {
 				{
 					Protocol:   corev1.ProtocolTCP,
 					Port:       cr.Spec.Port,
-					TargetPort: intstr.FromInt(int(cr.Spec.TargetPort)),
+					TargetPort: intstr.FromInt32(cr.Spec.TargetPort),
 				},
 			},
 		},
@@ -362,15 +362,6 @@ func updateStatus(ctx context.Context, r *PodSetReconciler, cr *dataclondv1.PodS
 	annotations["foo"] = "foo"
 	cr.SetAnnotations(annotations)
 	r.Log.Info("Reconciling PodSet annotation", "podName", cr.Name)
-	return r.Update(ctx, cr)
-}
-func addAnnotations(ctx context.Context, r *PodSetReconciler, cr *dataclondv1.PodSet) error {
-	annotations := cr.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-	annotations["foo"] = "foo"
-	cr.SetAnnotations(annotations)
 	return r.Update(ctx, cr)
 }
 

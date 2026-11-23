@@ -46,15 +46,31 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var kubeAPIQPS int
+	var kubeAPIBurst int
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.IntVar(&kubeAPIQPS, "kube-api-qps", 1000,
+		"Maximum QPS for requests to the Kubernetes API. Zero keeps the client-go default (20).")
+	flag.IntVar(&kubeAPIBurst, "kube-api-burst", 2000,
+		"Maximum burst for requests to the Kubernetes API. Zero keeps the client-go default (30).")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	cfg := ctrl.GetConfigOrDie()
+	// The PodLoadTest controller is designed to saturate the API server; the
+	// client-go default of 20 QPS would otherwise cap submission.
+	if kubeAPIQPS > 0 {
+		cfg.QPS = float32(kubeAPIQPS)
+	}
+	if kubeAPIBurst > 0 {
+		cfg.Burst = kubeAPIBurst
+	}
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:           scheme,
 		Metrics:          metricsserver.Options{BindAddress: metricsAddr},
 		LeaderElection:   enableLeaderElection,
@@ -71,6 +87,21 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PodSet")
+		os.Exit(1)
+	}
+	if err = (&controllers.PodLoadTestReconciler{
+		Client:    mgr.GetClient(),
+		APIReader: mgr.GetAPIReader(),
+		Scheme:    mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PodLoadTest")
+		os.Exit(1)
+	}
+	if err = (&controllers.PodReclaimer{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PodReclaimer")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

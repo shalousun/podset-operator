@@ -10,6 +10,232 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.23.0
+  name: podloadtests.data.clond.com.shalousun
+spec:
+  group: data.clond.com.shalousun
+  names:
+    kind: PodLoadTest
+    listKind: PodLoadTestList
+    plural: podloadtests
+    shortNames:
+    - plt
+    singular: podloadtest
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.submitted
+      name: Submitted
+      type: integer
+    - jsonPath: .status.inFlight
+      name: InFlight
+      type: integer
+    - jsonPath: .status.submissionRate
+      name: Rate/s
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: PodLoadTest is the Schema for the podloadtests API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PodLoadTestSpec defines the desired state of PodLoadTest
+            properties:
+              cleanup:
+                description: Cleanup controls how completed Pods are reclaimed.
+                properties:
+                  deleteCompletedPods:
+                    default: true
+                    description: |-
+                      DeleteCompletedPods deletes Pods as soon as they reach Succeeded or
+                      Failed. Defaults to true.
+                    type: boolean
+                  deletePVCs:
+                    default: true
+                    description: |-
+                      DeletePVCs deletes the PVC created for a Pod when that Pod is reclaimed.
+                      Defaults to true.
+                    type: boolean
+                  ttlSecondsAfterFinished:
+                    default: 0
+                    description: |-
+                      TTLSecondsAfterFinished delays Pod deletion by this many seconds after
+                      completion. Defaults to 0 (delete immediately).
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              createConcurrency:
+                default: 10
+                description: |-
+                  CreateConcurrency is the number of Pod create requests that may run in
+                  parallel. Increase it when the API server can handle more concurrency.
+                format: int32
+                maximum: 100
+                minimum: 1
+                type: integer
+              durationSeconds:
+                description: |-
+                  DurationSeconds stops submission after this many seconds. Zero means no
+                  time limit.
+                format: int64
+                minimum: 0
+                type: integer
+              maxInFlight:
+                default: 100
+                description: |-
+                  MaxInFlight is the maximum number of submitted Pods that have not
+                  completed yet. Once reached, submission pauses until Pods complete and
+                  are reclaimed.
+                format: int32
+                minimum: 1
+                type: integer
+              podTimeoutSeconds:
+                description: |-
+                  PodTimeoutSeconds deletes Pods that have not completed within this many
+                  seconds. Zero disables the timeout. This prevents a broken image or an
+                  unschedulable Pod from stalling the run.
+                format: int32
+                minimum: 0
+                type: integer
+              storage:
+                description: Storage enables a dedicated PVC for every Pod when set.
+                properties:
+                  accessModes:
+                    description: AccessModes for each PVC. Defaults to ReadWriteOnce.
+                    items:
+                      type: string
+                    type: array
+                  mountPath:
+                    description: |-
+                      MountPath is where the volume is mounted in every container.
+                      Defaults to /data.
+                    type: string
+                  size:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Size is the requested storage size for each PVC.
+                      Defaults to 1Gi.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  storageClassName:
+                    description: |-
+                      StorageClassName is the storage class for each PVC. Empty uses the
+                      cluster default storage class.
+                    type: string
+                type: object
+              submitBurst:
+                description: |-
+                  SubmitBurst is the token bucket burst size, i.e. how many Pods may be
+                  submitted back-to-back. Defaults to submitRatePerSecond when set,
+                  otherwise to maxInFlight.
+                format: int32
+                minimum: 1
+                type: integer
+              submitRatePerSecond:
+                description: |-
+                  SubmitRatePerSecond limits Pod submission (client-side token bucket).
+                  Zero disables the client-side limit, leaving only maxInFlight as
+                  backpressure.
+                format: int32
+                minimum: 0
+                type: integer
+              suspend:
+                description: Suspend pauses Pod submission while true. Reclamation
+                  continues.
+                type: boolean
+              template:
+                description: |-
+                  Template is the Pod template used for every submitted Pod.
+                  RestartPolicy defaults to Never so that Pods can reach Succeeded and be
+                  reclaimed.
+                x-kubernetes-preserve-unknown-fields: true
+              total:
+                description: |-
+                  Total is the total number of Pods to submit. Zero means no limit:
+                  submission continues until durationSeconds elapses, the run is
+                  suspended, or the object is deleted.
+                format: int64
+                minimum: 0
+                type: integer
+            required:
+            - template
+            type: object
+          status:
+            description: PodLoadTestStatus defines the observed state of PodLoadTest
+            properties:
+              completionTime:
+                description: CompletionTime is when submission finished or the duration
+                  elapsed.
+                format: date-time
+                type: string
+              inFlight:
+                description: InFlight is the number of submitted Pods that have not
+                  completed yet.
+                format: int32
+                type: integer
+              message:
+                description: Message contains the last submission error or failure
+                  reason.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last processed by
+                  the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is Pending, Running, Suspended, Completed or Failed.
+                type: string
+              startTime:
+                description: StartTime is when the run started.
+                format: date-time
+                type: string
+              submissionRate:
+                description: |-
+                  SubmissionRate is the observed submission rate in whole Pods per
+                  second, measured over a 10 second window. Use the
+                  podloadtest_submission_rate_per_second metric for the precise value.
+                format: int32
+                type: integer
+              submitted:
+                description: Submitted is the number of Pod create requests that succeeded.
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
   name: podsets.data.clond.com.shalousun
 spec:
   group: data.clond.com.shalousun
@@ -344,6 +570,16 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - pods
   - services
   verbs:
@@ -357,6 +593,7 @@ rules:
 - apiGroups:
   - data.clond.com.shalousun
   resources:
+  - podloadtests
   - podsets
   verbs:
   - create
@@ -369,6 +606,7 @@ rules:
 - apiGroups:
   - data.clond.com.shalousun
   resources:
+  - podloadtests/status
   - podsets/status
   verbs:
   - get
@@ -495,9 +733,9 @@ spec:
         name: manager
         resources:
           limits:
-            cpu: 100m
-            memory: 30Mi
+            cpu: "1"
+            memory: 1Gi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 128Mi
       terminationGracePeriodSeconds: 10

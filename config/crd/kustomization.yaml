@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/data.clond.com.shalousun_podsets.yaml
+- bases/data.clond.com.shalousun_podloadtests.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
