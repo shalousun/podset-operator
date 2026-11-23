@@ -89,6 +89,8 @@ kubectl get plt -w
 | `podTimeoutSeconds` | 未完成 Pod 的超时回收，防止异常 Pod 卡住测试 |
 | `suspend` | 暂停提交，回收继续 |
 
+> 提示：`template.image` 在每个节点首次拉取会显著影响结果。如果要测 API Server 的**纯提交能力**，请提前在所有节点拉好镜像（或使用本地镜像仓库/预热 DaemonSet）；否则测到的是镜像拉取和调度速度。
+
 ### 指标
 Metrics 通过 manager 的 HTTPS `:8443/metrics` 暴露，使用 Kubernetes 原生认证鉴权（TokenReview + SubjectAccessReview）。不需要 `kube-rbac-proxy` sidecar，也不需要 cert-manager；controller-runtime 会自动生成自签名证书。
 
