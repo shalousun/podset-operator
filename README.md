@@ -90,7 +90,25 @@ kubectl get plt -w
 | `suspend` | 暂停提交，回收继续 |
 
 ### 指标
-Metrics 通过 manager 的 `:8080/metrics` 暴露（部署清单中由 kube-rbac-proxy 保护）。
+Metrics 通过 manager 的 HTTPS `:8443/metrics` 暴露，使用 Kubernetes 原生认证鉴权（TokenReview + SubjectAccessReview）。不需要 `kube-rbac-proxy` sidecar，也不需要 cert-manager；controller-runtime 会自动生成自签名证书。
+
+抓取端需要：
+- 一个 ServiceAccount，并绑定到 `metrics-reader` ClusterRole
+- 该 SA 的 bearer token；自签名证书需要 `insecureSkipVerify: true` 或配置对应 CA
+
+```shell
+kubectl create serviceaccount metrics-scraper -n monitoring
+kubectl create clusterrolebinding metrics-scraper \
+  --clusterrole=metrics-reader \
+  --serviceaccount=monitoring:metrics-scraper
+
+TOKEN=$(kubectl create token metrics-scraper -n monitoring)
+kubectl -n podset-operator-system port-forward \
+  svc/podset-operator-controller-manager-metrics-service 8443:8443 &
+curl -sk -H "Authorization: Bearer ${TOKEN}" https://127.0.0.1:8443/metrics | head
+```
+
+仅本地调试时，可以在 `config/default/manager_metrics_patch.yaml` 中把 `--metrics-secure` 改为 `false`，以 HTTP 且无鉴权方式暴露 metrics（不推荐）。
 
 | 指标 | 说明 |
 |---|---|
