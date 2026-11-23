@@ -4,14 +4,14 @@ metadata:
   name: podloadtest-sample
 spec:
   # Total number of Pods to submit. 0 means "no limit".
-  total: 1000
+  total: 5000
   # Never have more than this many unfinished Pods at once.
-  maxInFlight: 200
-  # Client-side token bucket: at most 100 Pods/second, bursts of 100.
-  submitRatePerSecond: 100
-  submitBurst: 100
+  maxInFlight: 4000
+  # Client-side token bucket: at most 300 Pods/second, bursts of 300.
+  submitRatePerSecond: 300
+  submitBurst: 300
   # Number of parallel Pod create requests.
-  createConcurrency: 20
+  createConcurrency: 100
   # Stop submitting after 10 minutes even if total has not been reached.
   durationSeconds: 600
   # Delete Pods that have not finished after 2 minutes.
@@ -26,8 +26,8 @@ spec:
       restartPolicy: Never
       containers:
       - name: worker
-        image: busybox:1.36
-        # 运行 10 秒后完成；调整这个值可以改变 Pod 生命周期和稳态吞吐。
+        image: tars-shanghai-registry-vpc.cn-shanghai.cr.aliyuncs.com/infra/busybox:20260914
+        # Keep the Pod alive for 10s: the shortest realistic business runtime.
         command: ["sh", "-c", "sleep 10; echo done"]
         resources:
           requests:

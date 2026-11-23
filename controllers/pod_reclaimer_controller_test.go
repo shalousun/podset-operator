@@ -40,6 +40,8 @@ var _ = Describe("PodReclaimer", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "loadtest-reclaim", Namespace: "default"},
 			Spec: dataclondv1.PodLoadTestSpec{
 				Template: podLoadTestTemplate(),
+				// The reclaimer only removes PVCs when the run declares storage.
+				Storage: &dataclondv1.PodLoadTestStorage{},
 			},
 		}
 		Expect(k8sClient.Create(ctx, cr)).To(Succeed())

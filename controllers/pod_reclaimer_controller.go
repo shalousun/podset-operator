@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	dataclondv1 "podset-operator/api/v1"
@@ -75,12 +76,14 @@ func (r *PodReclaimer) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Re
 	}
 
 	finished := pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed
+	var finishedAt time.Time
 	if finished {
+		finishedAt = podFinishedAt(pod)
 		if !policy.deleteCompleted {
 			return ctrl.Result{}, nil
 		}
 		if policy.ttl > 0 {
-			if wait := time.Until(podFinishedAt(pod).Add(policy.ttl)); wait > 0 {
+			if wait := time.Until(finishedAt.Add(policy.ttl)); wait > 0 {
 				return ctrl.Result{RequeueAfter: wait}, nil
 			}
 		}
@@ -98,6 +101,12 @@ func (r *PodReclaimer) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Re
 	if finished {
 		podLifetimeSeconds.WithLabelValues(pod.Namespace, runName).
 			Observe(time.Since(pod.CreationTimestamp.Time).Seconds())
+		completion := finishedAt.Sub(pod.CreationTimestamp.Time)
+		if completion < 0 {
+			completion = 0
+		}
+		podCompletionSeconds.WithLabelValues(pod.Namespace, runName).
+			Observe(completion.Seconds())
 	}
 	podsReclaimedTotal.WithLabelValues(pod.Namespace, runName).Inc()
 
@@ -148,6 +157,9 @@ func podCleanupPolicyFromSpec(spec dataclondv1.PodLoadTestSpec) podCleanupPolicy
 	}
 	policy.ttl = time.Duration(spec.Cleanup.TTLSecondsAfterFinished) * time.Second
 	policy.timeout = time.Duration(spec.PodTimeoutSeconds) * time.Second
+	// Only Pods from a run with storage have a per-Pod PVC. Skipping the PVC
+	// lookup otherwise avoids a cache miss and API GET for every reclaimed Pod.
+	policy.deletePVCs = policy.deletePVCs && spec.Storage != nil
 	return policy
 }
 
@@ -179,8 +191,12 @@ func podLoadTestRunName(pod *corev1.Pod) string {
 }
 
 func (r *PodReclaimer) SetupWithManager(mgr ctrl.Manager) error {
+	// High-churn load tests complete Pods faster than a single worker can
+	// delete them; use a larger worker pool so reclamation keeps up with
+	// submission and does not accumulate Pod metadata.
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("pod-reclaimer").
+		WithOptions(controller.Options{MaxConcurrentReconciles: 50}).
 		For(&corev1.Pod{}).
 		WithEventFilter(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 			labels := obj.GetLabels()
