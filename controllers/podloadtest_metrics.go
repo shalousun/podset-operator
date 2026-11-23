@@ -79,6 +79,13 @@ var (
 		Help:      "Lifetime of completed Pods from creation to reclamation.",
 		Buckets:   []float64{0.5, 1, 2, 5, 10, 30, 60, 120, 300, 600},
 	}, []string{"namespace", "podloadtest"})
+
+	podCompletionSeconds = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: metricsNamespace,
+		Name:      "pod_completion_duration_seconds",
+		Help:      "Duration from Pod creation to reaching Succeeded/Failed, excluding reclaimer queue time.",
+		Buckets:   []float64{0.5, 1, 2, 5, 10, 20, 30, 60, 120, 300, 600},
+	}, []string{"namespace", "podloadtest"})
 )
 
 func init() {
@@ -92,6 +99,7 @@ func init() {
 		podsReclaimedTotal,
 		podReclaimErrorsTotal,
 		podLifetimeSeconds,
+		podCompletionSeconds,
 	)
 }
 
@@ -107,4 +115,5 @@ func forgetPodLoadTestMetrics(namespace, name string) {
 	podsReclaimedTotal.DeleteLabelValues(namespace, name)
 	podReclaimErrorsTotal.DeleteLabelValues(namespace, name)
 	podLifetimeSeconds.DeleteLabelValues(namespace, name)
+	podCompletionSeconds.DeleteLabelValues(namespace, name)
 }

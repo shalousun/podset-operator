@@ -122,6 +122,7 @@ curl -sk -H "Authorization: Bearer ${TOKEN}" https://127.0.0.1:8443/metrics | he
 | `podloadtest_submission_rate_per_second` | 最近 10 秒平均提交速率 |
 | `podloadtest_pods_reclaimed_total` | 已回收的 Pod 数 |
 | `podloadtest_pod_lifetime_seconds` | 完成 Pod 的生命周期分布 |
+| `podloadtest_pod_completion_duration_seconds` | Pod 从创建到完成（Succeeded/Failed）的耗时，不含回收队列等待 |
 
 每秒提交数：
 

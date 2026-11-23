@@ -65,12 +65,6 @@ var podLoadTestLog = logf.Log.WithName("podloadtest")
 // and cleanup do not block each other.
 type PodLoadTestReconciler struct {
 	client.Client
-
-	// APIReader is an uncached reader used to count in-flight Pods accurately.
-	// Without it, a freshly created Pod may not be visible in the cache yet,
-	// which would allow over-submission past maxInFlight.
-	APIReader client.Reader
-
 	Scheme *runtime.Scheme
 
 	storesMu sync.Mutex
@@ -256,13 +250,13 @@ func (r *PodLoadTestReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 }
 
 // countInFlight counts submitted Pods that have not reached a terminal phase.
+// It uses the manager cache: at high Pod counts an uncached List is a large
+// API round trip on every reconcile and becomes the submission bottleneck.
+// The cache may briefly lag behind Create, allowing a small overshoot of
+// maxInFlight; that is acceptable for a load test.
 func (r *PodLoadTestReconciler) countInFlight(ctx context.Context, cr *dataclondv1.PodLoadTest) (int32, error) {
-	reader := r.APIReader
-	if reader == nil {
-		reader = r.Client
-	}
 	podList := &corev1.PodList{}
-	if err := reader.List(ctx, podList,
+	if err := r.Client.List(ctx, podList,
 		client.InNamespace(cr.Namespace),
 		client.MatchingLabels(map[string]string{podLoadTestUIDLabel: string(cr.UID)}),
 	); err != nil {

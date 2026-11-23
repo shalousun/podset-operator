@@ -63,9 +63,8 @@ var _ = Describe("PodLoadTest controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect((&PodLoadTestReconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Scheme:    mgr.GetScheme(),
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr)).To(Succeed())
 		Expect((&PodReclaimer{
 			Client: mgr.GetClient(),
@@ -87,7 +86,7 @@ var _ = Describe("PodLoadTest controller", func() {
 		}
 		Expect(k8sClient.Create(ctx, cr)).To(Succeed())
 
-		r := &PodLoadTestReconciler{Client: k8sClient, APIReader: k8sClient, Scheme: scheme.Scheme}
+		r := &PodLoadTestReconciler{Client: k8sClient, Scheme: scheme.Scheme}
 		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -130,7 +129,7 @@ var _ = Describe("PodLoadTest controller", func() {
 		}
 		Expect(k8sClient.Create(ctx, cr)).To(Succeed())
 
-		r := &PodLoadTestReconciler{Client: k8sClient, APIReader: k8sClient, Scheme: scheme.Scheme}
+		r := &PodLoadTestReconciler{Client: k8sClient, Scheme: scheme.Scheme}
 		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
 		Expect(err).NotTo(HaveOccurred())
 

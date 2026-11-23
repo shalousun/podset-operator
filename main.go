@@ -101,9 +101,8 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.PodLoadTestReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
-		Scheme:    mgr.GetScheme(),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PodLoadTest")
 		os.Exit(1)
